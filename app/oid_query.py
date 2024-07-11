@@ -1,6 +1,7 @@
 import re
 from typing import List, Dict
 
+
 from pydantic import BaseModel
 from pysnmp.hlapi import varbinds
 from pysnmp.hlapi.asyncio import *
@@ -51,7 +52,7 @@ async def get_oid_from_to(query: QueryOID):
     """
     Запрашивает список oid начиная с query.oid_start до query.oid_stop (исключая последний).
     Возвращает словарь, в котором в ключе result_list список объектов
-    [ObjectIdentity, Integer/OctetString]
+    [pysnmp.proto.rfc1902.ObjectIdentity, pysnmp.proto.rfc1902.Integer/OctetString/...]
     """
     print("New query: {}:{} ({}) {} - {}".format(
         query.host, query.port, query.community, query.oid_start, query.oid_stop
@@ -98,15 +99,75 @@ async def get_oid_from_to(query: QueryOID):
             if oid_current >= oid_stop:
                 break
             else:
-                print("value: {}, type: {}".format(str(value), type(value)))
+                # print("value: {}, type: {}".format(str(value), type(value)))
                 results["result_list"].append([oid_current, value])
                 results["count"] += 1
 
     return results
 
 
-def extract_mac_vlan_port(data):
+def extract_info_ip(data) -> ResultQueryOID:
     """
+    Принимает на входе результат опроса коммутатора - структуру данных которую отдает get_oid_from_to(),
+    внутри списка result_list объекты времени выполнения:
+    [pysnmp.proto.rfc1902.ObjectIdentity, pysnmp.proto.rfc1902.Integer/OctetString/...]
+    Функциональность не работает с операциями ввода/вывода, поэтому не async
+    *************************************************************************************************
+    Эквивалент `SnmpWalk -csv -v:2c -c:public -r:host -os:.1.3.6.1.2.1.4.20.1 -op:.1.3.6.1.2.1.4.20.2`
+    Струкрура OID-шек с инфо о наличии внутренних IP-addr такова:
+    1.3.6.1.2.1.4.20.1.TYPE_INFO.IP.A.D.DR = INFO
+
+    На выходе словарь вида:
+    {
+        "results_list": [
+            {
+                "10.0.0.1": {
+                    "ipAdEntAddr": "10.0.0.1",
+                    "ipAdEntIfIndex": "53",
+                    "ipAdEntNetMask": "255.255.252.0",
+                    "ipAdEntBcastAddr": "1",
+                    "ipAdEntReasmMaxSize": "65535"
+                }
+            }
+        ],
+        "count": 1,
+        "error": null
+    }
+    """
+    # Нет доверия к этой конструкции, если некий новоявленный прибор не даст свой вариант реализации.
+    info_key = {
+        "1": "ipAdEntAddr",
+        "2": "ipAdEntIfIndex",
+        "3": "ipAdEntNetMask",
+        "4": "ipAdEntBcastAddr",
+        "5": "ipAdEntReasmMaxSize",
+    }
+
+    oid_root = str(data["oid_start"]) + '.'
+    results = ResultQueryOID()
+    ip_addr_entry: dict = {}
+    try:
+        for elem in data["result_list"]:
+            key, addr = str(elem[0]).split(oid_root)[1].split('.', maxsplit=1)
+            ip_addr_entry.setdefault(addr, {})
+            info_key.setdefault(key, "unknown")  # возможно это излишняя страховка
+            ip_addr_entry[addr].update({info_key[key]: elem[1].prettyPrint()})
+
+        results.results_list.append(ip_addr_entry)
+        results.count = len(ip_addr_entry)
+    except Exception as ex:
+        results.error = "extract_info_ip: Error was occurred: {}".format(ex)
+
+    return results
+
+
+def extract_mac_vlan_port(data) -> ResultQueryOID:
+    """
+    Принимает на входе результат опроса коммутатора - структуру данных которую отдает get_oid_from_to(),
+    внутри списка result_list объекты времени выполнения:
+    [pysnmp.proto.rfc1902.ObjectIdentity, pysnmp.proto.rfc1902.Integer/OctetString/...]
+    Функциональность не работает с операциями ввода/вывода, поэтому не async
+    *************************************************************************************************
     Структура OID-шек с маками такова:
     1.3.6.1.2.1.17.7.1.2.2.1.2.VLAN.M.A.C.A.D.R = PORT
     Отсекаем головную часть равную 1.3.6.1.2.1.17.7.1.2.2.1.2, вычленяем октет с VLANом,
@@ -129,16 +190,108 @@ def extract_mac_vlan_port(data):
                 vlan_and_mac = cut_oid[1].split('.')
                 vlan = vlan_and_mac[0]
                 # mac представлен в десятичных числах, переводим в hex
-                mac = ":".join(['{0:x}'.format(int(el)) for el in vlan_and_mac[1:]])
-                port = str(elem[1])
-                print("\tmac: {},\tvlan: {},\tport: {}".format(mac, vlan, port))
-                results.results_list.append({"mac": mac, "vlan": vlan, "port": port})
+                mac = ":".join(['{0:02x}'.format(int(el)) for el in vlan_and_mac[1:]])
+                logical_interface_id = str(elem[1])
+                print("\tmac: {},\tvlan: {},\tlogical_interface_id: {}".format(mac, vlan, logical_interface_id))
+                results.results_list.append(
+                    {
+                        "mac": mac,
+                        "vlan": vlan,
+                        "logical_interface_id": logical_interface_id
+                    }
+                )
                 results.count += 1
         except Exception as ex:
             print("\n{}\nПри разборе элемента произошла ошибка\n{}".format(
                 str(elem), ex
             ))
-            results.error = "Exception: {}".format(ex)
+            results.error = "extract_mac_vlan_port: Exception: {}".format(ex)
             break
+
+    return results
+
+
+def extract_port_and_port_name(data) -> ResultQueryOID:
+    """
+    Принимает на входе результат опроса коммутатора - структуру данных которую отдает get_oid_from_to(),
+    внутри списка result_list объекты времени выполнения:
+    [pysnmp.proto.rfc1902.ObjectIdentity, pysnmp.proto.rfc1902.Integer/OctetString/...]
+    Функциональность не работает с операциями ввода/вывода, поэтому не async
+    *************************************************************************************************
+    Струкрура OID-шек с инфо по портам такова:
+    1.3.6.1.2.1.31.1.1.1.1.PORT = PORT_NAME
+    Не следует ожидать, что PORT будет 0 или 1 для первого порта. Все это внутренняя кухня.
+    На выходе словарь вида:
+    {
+    "results_list": [
+        {
+            "logical_interface_id": "49",
+            "port_name": "gi1/0/1"
+        },
+        ],
+        "count": int,
+        "error": str
+    }
+    """
+    results = ResultQueryOID()
+    oid_root_str = str(data["oid_start"]) + '.'
+
+    for elem in data["result_list"]:
+        try:
+            results.results_list.append(
+                {
+                    "logical_interface_id": str(elem[0]).split(oid_root_str)[1],
+                    "port_name": str(elem[1])
+                }
+            )
+            results.count += 1
+
+        except Exception as ex:
+            print("\n{}\nПри разборе элемента произошла ошибка\n{}".format(
+                str(elem), ex
+            ))
+            results.error = "extract_port_and_port_name: Exception: {}".format(ex)
+            break
+
+    return results
+
+
+def extract_arp_table(data) -> ResultQueryOID:
+    """
+    Принимает на входе результат опроса коммутатора - структуру данных которую отдает get_oid_from_to(),
+    внутри списка result_list объекты времени выполнения:
+    [pysnmp.proto.rfc1902.ObjectIdentity, pysnmp.proto.rfc1902.Integer/OctetString/...]
+    Функциональность не работает с операциями ввода/вывода, поэтому не async
+    *************************************************************************************************
+    {
+    "results_list": [
+        {
+            "logical_interface_id": "12",
+            "ip_addr": "10.0.0.29",
+            "mac": "63:13:a2:21:01:80",
+        },
+    ],
+    "count": 1,
+    "error": null
+}
+    """
+    results = ResultQueryOID()
+    oid_root_str = str(data["oid_start"]) + '.'
+
+    try:
+        for elem in data["result_list"]:
+            logical_interface_id, ip_addr = str(elem[0]).split(oid_root_str)[1].split(".", maxsplit=1)
+            mac: OctetString = elem[1]
+            results.results_list.append(
+                {
+                    "logical_interface_id": logical_interface_id,
+                    "ip_addr": ip_addr,
+                    "mac": "".join(["{0:02x}".format(el) for el in mac.asNumbers()]),
+                }
+            )
+        results.count = len(results.results_list)
+    except Exception as ex:
+        print("\nПри разборе элемента произошла ошибка\n{}".format(ex))
+        results.error = "extract_arp_table: Exception: {}".format(ex)
 
     return results
