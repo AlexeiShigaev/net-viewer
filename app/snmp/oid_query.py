@@ -1,48 +1,9 @@
 import re
-from typing import List, Dict
 
-
-from pydantic import BaseModel
 from pysnmp.hlapi import varbinds
 from pysnmp.hlapi.asyncio import *
 
-
-class QueryOID(BaseModel):
-    host: str
-    port: int = 161
-    community: str = "public"
-    snmp_ver: int = 1  # 0 - for SNMP v1, 1 - for SNMP v2c (default)
-    oid_start: str
-    oid_stop: str
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "1. short query": {
-                        "host": "IP addr, кого опрашиваем",
-                        "oid_start": "oid.1",
-                        "oid_stop": "oid.2",
-                    },
-                    "2. full query": {
-                        "host": "IP addr, кого опрашиваем",
-                        "port": 161,
-                        "community": "public",
-                        "snmp_ver": 1,
-                        "oid_start": "oid.1",
-                        "oid_stop": "oid.2",
-                    }
-                }
-            ]
-        }
-    }
-
-
-class ResultQueryOID(BaseModel):
-    results_list: List = []
-    count: int = 0
-    error: str = None
-
+from app.snmp.models import QueryOID, ResultQueryOID
 
 snmp_engine = SnmpEngine()
 mibViewController = varbinds.AbstractVarBinds.getMibViewController(snmp_engine)
@@ -192,7 +153,7 @@ def extract_mac_vlan_port(data) -> ResultQueryOID:
                 # mac представлен в десятичных числах, переводим в hex
                 mac = ":".join(['{0:02x}'.format(int(el)) for el in vlan_and_mac[1:]])
                 logical_interface_id = str(elem[1])
-                print("\tmac: {},\tvlan: {},\tlogical_interface_id: {}".format(mac, vlan, logical_interface_id))
+                # print("\tmac: {},\tvlan: {},\tlogical_interface_id: {}".format(mac, vlan, logical_interface_id))
                 results.results_list.append(
                     {
                         "mac": mac,
@@ -220,7 +181,7 @@ def extract_port_and_port_name(data) -> ResultQueryOID:
     *************************************************************************************************
     Струкрура OID-шек с инфо по портам такова:
     1.3.6.1.2.1.31.1.1.1.1.PORT = PORT_NAME
-    Не следует ожидать, что PORT будет 0 или 1 для первого порта. Все это внутренняя кухня.
+    Не следует ожидать, что PORT будет 0 или 1 для первого порта. Все это внутренняя кухня коммутатора.
     На выходе словарь вида:
     {
     "results_list": [
@@ -286,7 +247,7 @@ def extract_arp_table(data) -> ResultQueryOID:
                 {
                     "logical_interface_id": logical_interface_id,
                     "ip_addr": ip_addr,
-                    "mac": "".join(["{0:02x}".format(el) for el in mac.asNumbers()]),
+                    "mac": ":".join(["{0:02x}".format(el) for el in mac.asNumbers()]),
                 }
             )
         results.count = len(results.results_list)

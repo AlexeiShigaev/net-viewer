@@ -1,26 +1,21 @@
 from datetime import timedelta
 
 from fastapi import APIRouter
+from fastapi.security import OAuth2PasswordBearer
 from pysnmp.proto.rfc1902 import TimeTicks
 
-from oid_query import QueryOID, get_oid_from_to, extract_mac_vlan_port, ResultQueryOID, extract_port_and_port_name, \
-    extract_info_ip, extract_arp_table
+from app.snmp.oid_query import (
+    QueryOID, get_oid_from_to, extract_mac_vlan_port, ResultQueryOID,
+    extract_port_and_port_name, extract_info_ip, extract_arp_table
+)
 
 
-router = APIRouter(tags=["api"])
+router = APIRouter(prefix="/snmp", tags=["SNMP api"])
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-@router.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
-@router.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
-
-
-@router.post("/query")
+@router.post("/", summary="Абстрактный запрос. Универсальный.")
 async def query_oid_range(query: QueryOID) -> ResultQueryOID:
     """
     Запрос нескольких oid из промежутка начиная от **oid_start** включительно и до **oid_stop**, исключая последний.
@@ -42,14 +37,14 @@ async def query_oid_range(query: QueryOID) -> ResultQueryOID:
         "results_list": [
         {
             "oid": "1.3.6.1.2.1.1.6.0",
-            "value": "comment"
+            "value": "value"
         },
         ],
         "count": int,
         "error": str,
     }
     ```
-
+    Обязательно проверять значение ключа error. Если оно не null - результатам верить нельзя.
     """
     results = ResultQueryOID()
 
@@ -62,7 +57,7 @@ async def query_oid_range(query: QueryOID) -> ResultQueryOID:
     return results
 
 
-@router.post("/query/info")
+@router.post("/query/info", summary="Запрос основной информации о приборе.")
 async def query_info(query: QueryOID) -> ResultQueryOID:
     """
     Запрос наименования прибора, его время аптайм. Так же комментарии, расположение (если заполнено).
@@ -104,7 +99,7 @@ async def query_info(query: QueryOID) -> ResultQueryOID:
     return results
 
 
-@router.post("/query/info_ip")
+@router.post("/query/info_ip", summary="Запрос локальных IP адресов устройства")
 async def query_info_ip(query: QueryOID) -> ResultQueryOID:
     """
     Запрос локальных IP адресов устройства.
@@ -139,7 +134,7 @@ async def query_info_ip(query: QueryOID) -> ResultQueryOID:
     return extract_info_ip(ret_data)
 
 
-@router.post("/query/macs")
+@router.post("/query/macs", summary="Запрос: на каких портах коммутатора какие маки светятся, в каких VLan-ах")
 async def query_mac_vlan_port(query: QueryOID) -> ResultQueryOID:
     """
     Запрос: на каких портах коммутатора какие маки светятся, в каких VLan-ах.
@@ -166,7 +161,7 @@ async def query_mac_vlan_port(query: QueryOID) -> ResultQueryOID:
     return extract_mac_vlan_port(ret_data)
 
 
-@router.post("/query/ports")
+@router.post("/query/ports", summary="Запрос портов/интерфейсов коммутатора")
 async def query_ports(query: QueryOID):
     """
     Запрос портов/интерфейсов коммутатора, в его внутренних нумерации и именовании портов/интерфейсов.
@@ -188,6 +183,7 @@ async def query_ports(query: QueryOID):
         "error": str
     }
     ```
+    Обязательно проверять значение ключа error. Если оно не null - результатам верить нельзя.
     """
     # Запрашиваем сырые данные от хоста
     ret_data = await get_oid_from_to(query)
@@ -197,7 +193,7 @@ async def query_ports(query: QueryOID):
     return extract_port_and_port_name(ret_data)
 
 
-@router.post("/query/arp")
+@router.post("/query/arp", summary="Запрос соответствий мак-адресов и IP-адресов.")
 async def query_arp_table(query: QueryOID) -> ResultQueryOID:
     """
     Запрос соответствий мак-адресов и IP-адресов. По портам.
@@ -207,8 +203,19 @@ async def query_arp_table(query: QueryOID) -> ResultQueryOID:
 
     На выходе словарь вида:
     ```
-
+    {
+      "results_list": [
+        {
+          "logical_interface_id": "100004",
+          "ip_addr": "10.0.1.4",
+          "mac": "62:13:a2:97:84:00"
+        },
+        ],
+        "count": int,
+        "error": str
+    }
     ```
+    Обязательно проверять значение ключа error. Если оно не null - результатам верить нельзя.
     """
     # Запрашиваем сырые данные от хоста
     ret_data = await get_oid_from_to(query)

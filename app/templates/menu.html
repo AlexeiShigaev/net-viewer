@@ -1,0 +1,81 @@
+<nav class="navbar navbar-expand-lg bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">MAC-Finder</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown"
+                       aria-expanded="false">Actions</a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Add L2+ employ (SNMP)</a></li>
+                        <li><a class="dropdown-item" href="#">123123</a></li>
+                        <li><a class="dropdown-item" href="#">Another action</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="#" id="menu_changePassword"
+                               data-bs-toggle="modal" data-bs-target="#changePassword">Change password</a></li>
+                        <li><a class="dropdown-item" href="#" id="menu_logout">Logout</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="#">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Settings222</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link disabled">Disabled</a>
+                </li>
+            </ul>
+            <form class="d-flex" role="search">
+                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+
+<div class="modal" tabindex="-1" id="changePassword">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Смена пароля текущего пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body" id="passModalBody">
+
+                <div class="input-group flex-nowrap">
+                    <form onsubmit="LogonButton()" action="/web">
+                        <!-- Password input -->
+                        <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="password" id="passwd1" class="form-control form-control-sm" autofocus/>
+                            <label class="form-label" for="passwd1">Password</label>
+                        </div>
+                        <!-- Confirm input -->
+                        <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="password" id="passwd2" class="form-control form-control-sm"/>
+                            <label class="form-label" for="passwd2">Confirmation</label>
+                            <div class="invalid-feedback" id="passwordFeedback"></div>
+                        </div>
+                        <!-- Submit button -->
+                        <button type="submit" id="changePasswordButton" data-mdb-button-init data-mdb-ripple-init
+                                class="btn btn-primary btn-sm btn-block" disabled>Change password
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript" src="/static/js/menu.js"></script>
