@@ -21,13 +21,11 @@ function validatePasswords() {
     if (pass1.value.length < 4) {
         feedback.innerHTML = "пароль должен быть не менее трех символов";
         pass2.classList.add("is-invalid")
-        console.log("pass < 4")
         return false
     }
     if (pass1.value !== pass2.value) {
         feedback.innerHTML = "подтверждение не совпадает с паролем";
         pass2.classList.add("is-invalid")
-        console.log("not equals")
         return false
     }
     console.log("all fine")
@@ -57,16 +55,15 @@ async function ChangePasswordButton() {
                 })
             }
         );
-        if (!fetchResponse.ok) {
-            throw fetchResponse;
-        } else {
+        if (!fetchResponse.ok) throw fetchResponse;
+        else {
             alert("Пароль изменен.\nВы будете перенаправлены на страницу авторизации.")
             window.location.replace("/web");
         }
 
     } catch (e) {
         alert("Пароль изменить не удалось.")
-        console.error("fetch crashes");
+        console.error("fetch crashes" + e);
     }
 }
 
@@ -91,8 +88,8 @@ const urls = {
 
 ////////////////////////////////////////////////////////////////////
 // Тестирование запроса к устройству в модальном окне добавления нового устройства
-// первый запрос - к абстрактному эндпоинту. Дает сырые данные от устройства. как есть.
-// второй запрос - к специальноу эндпоинту, он выдает обработанные данные.
+// Первый запрос - к абстрактному эндпоинту. Дает сырые данные от устройства. Как есть.
+// Второй запрос - к специальноу эндпоинту, он выдает обработанные данные.
 ////////////////////////////////////////////////////////////////////
 async function runTest(tab) {
     let versionSNMP = 0
@@ -119,16 +116,11 @@ async function runTest(tab) {
                 body: data
             }
         );
-        if (!fetchResponse.ok) {
-            document.getElementById(tab + "-result1").value = "Не удалось получить данные: response " + e.status;
-            throw fetchResponse;
-        } else {
+        if (!fetchResponse.ok) throw fetchResponse.status;
+        else {
             let response = await fetchResponse.json();
             let text = "";
-            if (response.error) {
-                document.getElementById(tab + "-result1").value = "Устройство не настроено отвечать на запросы";
-                throw fetchResponse;
-            }
+            if (response.error) throw fetchResponse.status;
             // console.log(response)
             response.results_list.forEach(elem => {
                 text = text + elem["oid"] + "=" + elem["value"] + "\n";
@@ -143,17 +135,12 @@ async function runTest(tab) {
                 body: data
             }
         );
-        if (!fetchResponse.ok) {
-            document.getElementById(tab + "-result2").value = "Не удалось получить данные: response " + e.status;
-            throw fetchResponse;
-        } else {
+        if (!fetchResponse.ok) throw fetchResponse.status;
+        else {
             let response = await fetchResponse.json();
-            if (response.error) {
-                document.getElementById(tab + "-result2").value = "Ошибка парсинга данных";
-                throw fetchResponse;
-            }
+            if (response.error) throw fetchResponse.status;
+
             let text = "";
-            console.log(response)
             response.results_list.forEach(elem => {
                 console.log(JSON.stringify(elem))
                 text = text + JSON.stringify(elem) + "\n";
@@ -163,7 +150,7 @@ async function runTest(tab) {
 
     } catch (e) {
         console.error("fetch crashes");
-        document.getElementById(tab + "-result2").value = "что-то пошло не так: response " + e.status;
+        document.getElementById(tab + "-result2").value = "что-то пошло не так: response " + e;
     }
 }
 
@@ -222,21 +209,14 @@ async function sendNewDeviceDada(){
                 body: document.getElementById("new_device").value
             }
         );
-        if (!fetchResponse.ok) {
-            document.getElementById("new_device").value = "Не удалось получить данные: response " + e.status;
-            throw fetchResponse;
-        } else {
-            // let response = await fetchResponse.json();
-            // if (response.error) {
-            //     document.getElementById("new_device").value = "Ошибка парсинга данных";
-            //     throw fetchResponse;
-            // }
-            document.getElementById("new_device").value = "Device added.";
-        }
+        if (!fetchResponse.ok)
+            throw fetchResponse.status;
+        else
+            document.getElementById("new_device").value = "Устройство добавлено.";
 
     } catch (e) {
         console.error("fetch crashes");
-        document.getElementById("new_device").value = "что-то пошло не так: response " + e.status;
+        document.getElementById("new_device").value = "что-то пошло не так: response " + e;
     }
 }
 
