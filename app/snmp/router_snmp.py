@@ -1,9 +1,12 @@
 from datetime import timedelta
 
-from fastapi import APIRouter
+import pysnmp
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordBearer
 from pysnmp.proto.rfc1902 import TimeTicks
 
+from app.auth.auth import get_current_user
+from app.auth.schemas import UserData4Auth
 from app.snmp.oid_query import (
     QueryOID, get_oid_from_to, extract_mac_vlan_port, ResultQueryOID,
     extract_port_and_port_name, extract_info_ip, extract_arp_table
@@ -12,11 +15,9 @@ from app.snmp.oid_query import (
 
 router = APIRouter(prefix="/snmp", tags=["SNMP api"])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
 
 @router.post("/", summary="Абстрактный запрос. Универсальный.")
-async def query_oid_range(query: QueryOID) -> ResultQueryOID:
+async def query_oid_range(query: QueryOID, user: UserData4Auth = Depends(get_current_user)) -> ResultQueryOID:
     """
     Запрос нескольких oid из промежутка начиная от **oid_start** включительно и до **oid_stop**, исключая последний.
 
@@ -58,7 +59,7 @@ async def query_oid_range(query: QueryOID) -> ResultQueryOID:
 
 
 @router.post("/query/info", summary="Запрос основной информации о приборе.")
-async def query_info(query: QueryOID) -> ResultQueryOID:
+async def query_info(query: QueryOID, user: UserData4Auth = Depends(get_current_user)) -> ResultQueryOID:
     """
     Запрос наименования прибора, его время аптайм. Так же комментарии, расположение (если заполнено).
 
@@ -87,20 +88,30 @@ async def query_info(query: QueryOID) -> ResultQueryOID:
 
     # распаковываем данные
     results = ResultQueryOID()
+
     try:
-        # убираю пустые строки, перевожу аптайм в строку, на выходе список строк
-        results.results_list = [
-            str(timedelta(milliseconds=10 * int(el[1]))) if isinstance(el[1], TimeTicks) else str(el[1])
-            for el in ret_data["result_list"] if not (str(el[1]).startswith("1.3.6.1.") or str(el[1]) == "")
-        ]
+        # убираю пустые строки, перевожу аптайм в строку, на выходе словарь
+
+        for el in ret_data["result_list"]:
+            if isinstance(el[1], TimeTicks):
+                results.results_list.append(
+                    {str(el[0]): str(timedelta(milliseconds=10 * int(el[1])))}
+                )
+            else:
+                if not str(el[1]).startswith("1.3.6.1"):
+                    results.results_list.append(
+                        {str(el[0]): str(el[1])}
+                    )
+
         results.count = len(results.results_list)
     except Exception as ex:
+        print("error: {}".format(ex))
         results.error = "Error was occurred: {}".format(ex)
     return results
 
 
 @router.post("/query/info_ip", summary="Запрос локальных IP адресов устройства")
-async def query_info_ip(query: QueryOID) -> ResultQueryOID:
+async def query_info_ip(query: QueryOID, user: UserData4Auth = Depends(get_current_user)) -> ResultQueryOID:
     """
     Запрос локальных IP адресов устройства.
 
@@ -135,7 +146,7 @@ async def query_info_ip(query: QueryOID) -> ResultQueryOID:
 
 
 @router.post("/query/macs", summary="Запрос: на каких портах коммутатора какие маки светятся, в каких VLan-ах")
-async def query_mac_vlan_port(query: QueryOID) -> ResultQueryOID:
+async def query_mac_vlan_port(query: QueryOID, user: UserData4Auth = Depends(get_current_user)) -> ResultQueryOID:
     """
     Запрос: на каких портах коммутатора какие маки светятся, в каких VLan-ах.
 
@@ -162,7 +173,7 @@ async def query_mac_vlan_port(query: QueryOID) -> ResultQueryOID:
 
 
 @router.post("/query/ports", summary="Запрос портов/интерфейсов коммутатора")
-async def query_ports(query: QueryOID):
+async def query_ports(query: QueryOID, user: UserData4Auth = Depends(get_current_user)):
     """
     Запрос портов/интерфейсов коммутатора, в его внутренних нумерации и именовании портов/интерфейсов.
 
@@ -194,7 +205,7 @@ async def query_ports(query: QueryOID):
 
 
 @router.post("/query/arp", summary="Запрос соответствий мак-адресов и IP-адресов.")
-async def query_arp_table(query: QueryOID) -> ResultQueryOID:
+async def query_arp_table(query: QueryOID, user: UserData4Auth = Depends(get_current_user)) -> ResultQueryOID:
     """
     Запрос соответствий мак-адресов и IP-адресов. По портам.
 

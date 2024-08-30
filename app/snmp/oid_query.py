@@ -8,6 +8,15 @@ from app.snmp.models import QueryOID, ResultQueryOID
 snmp_engine = SnmpEngine()
 mibViewController = varbinds.AbstractVarBinds.getMibViewController(snmp_engine)
 
+# Нет доверия к этой конструкции, а если некий новоявленный прибор не даст свой вариант реализации?
+info_key = {
+    "1": "ipAdEntAddr",
+    "2": "ipAdEntIfIndex",
+    "3": "ipAdEntNetMask",
+    "4": "ipAdEntBcastAddr",
+    "5": "ipAdEntReasmMaxSize",
+}
+
 
 async def get_oid_from_to(query: QueryOID):
     """
@@ -95,14 +104,6 @@ def extract_info_ip(data) -> ResultQueryOID:
         "error": null
     }
     """
-    # Нет доверия к этой конструкции, если некий новоявленный прибор не даст свой вариант реализации.
-    info_key = {
-        "1": "ipAdEntAddr",
-        "2": "ipAdEntIfIndex",
-        "3": "ipAdEntNetMask",
-        "4": "ipAdEntBcastAddr",
-        "5": "ipAdEntReasmMaxSize",
-    }
 
     oid_root = str(data["oid_start"]) + '.'
     results = ResultQueryOID()
@@ -114,8 +115,8 @@ def extract_info_ip(data) -> ResultQueryOID:
             info_key.setdefault(key, "unknown")  # возможно это излишняя страховка
             ip_addr_entry[addr].update({info_key[key]: elem[1].prettyPrint()})
 
-        results.results_list.append(ip_addr_entry)
-        results.count = len(ip_addr_entry)
+        results.results_list = [{el: ip_addr_entry[el]} for el in ip_addr_entry]
+        results.count = len(results.results_list)
     except Exception as ex:
         results.error = "extract_info_ip: Error was occurred: {}".format(ex)
 

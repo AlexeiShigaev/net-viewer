@@ -1,5 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Response, Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, status, Response, Depends
 
 from app.auth.auth import get_password_hash, create_access_token, authenticate_user, get_current_user
 from app.auth.schemas import UserData4Auth

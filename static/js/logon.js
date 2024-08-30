@@ -5,7 +5,7 @@ async function LogonButton() {
         let fetchResponse = await fetch("/auth/logon", {
                 method: 'POST',
                 headers: {
-                    'Accept': 'application/json, text/plain, */*',
+                    'Accept': 'application/json',
                     'Content-type': 'application/json',
                 },
                 body: JSON.stringify({

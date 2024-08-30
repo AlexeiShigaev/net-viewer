@@ -25,7 +25,28 @@
 
 
 ## Запуск
-```angular2html
-git clone 
-python -m app
+
 ```
+git clone https://github.com/AlexeiShigaev/net-viewer.git
+cd net-viewer
+docker compose up --build
+```
+
+## Далее в браузере
+Предполагается, что вы нарулили хотя бы одно устройство для запросов SNMP с хоста на котором развернули приложение.
+Идем в браузере по адресу ```http://host:8008/web/```. Логин admin, стартовый пароль admin. Сменить пароль возможность есть.
+Добавляем устройство.
+
+Для тестирования API ```http://host:8008/docs``` (swagger)
+
+
+## Почистить после
+Если очень хочется совсем все вычистить, включая скачанные образы контейнеров.
+```
+docker system prune -af
+```
+
+## Использованы технологии
+FastAPI, MongoDB (с драйвером Motor), Pydantic, Jinja2Templates, Swagger<br>
+Авторизация через JSON Web Token, передаем его в куки. В базе хэш пароля (HS256).<br>
+Все это целиком завернуто в Docker.

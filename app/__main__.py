@@ -5,6 +5,7 @@ from app.snmp.router_snmp import router as router_snmp
 from app.settings import STATIC_DIR
 from app.client.router_web_client import router as router_web_client
 from app.auth.router_auth import router as router_auth
+from app.core.router_core import router as router_core
 
 
 def app_loader():
@@ -15,6 +16,7 @@ def app_loader():
     app.include_router(router_auth)
     app.include_router(router_snmp)
     app.include_router(router_web_client)
+    app.include_router(router_core)
 
     return app
 

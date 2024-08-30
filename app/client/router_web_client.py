@@ -5,7 +5,7 @@ from starlette.templating import Jinja2Templates
 from app.auth.auth import get_current_user, get_token
 
 
-router = APIRouter(prefix="/web", tags=["web-client"])
+router = APIRouter(prefix="/web", tags=["Web client"])
 
 templates = Jinja2Templates(directory="app/templates")
 
