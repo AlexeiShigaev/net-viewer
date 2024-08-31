@@ -32,6 +32,12 @@ cd net-viewer
 docker compose up --build
 ```
 
+## Возможные проблемы запуска
+Сообщение при старте монго ```WARNING: MongoDB 5.0+ requires a CPU with AVX support, and your current system does not appear to have that!```
+понижаем версию до ```image: mongo:4.4.18``` в docker-compose.yaml<br>
+Или искать как включить AVX support. 
+
+
 ## Далее в браузере
 Предполагается, что вы нарулили хотя бы одно устройство для запросов SNMP с хоста на котором развернули приложение.
 Идем в браузере по адресу ```http://host:8008/web/```. Логин admin, стартовый пароль admin. Сменить пароль возможность есть.

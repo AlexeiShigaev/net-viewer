@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import pysnmp
 from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordBearer
 from pysnmp.proto.rfc1902 import TimeTicks
 
 from app.auth.auth import get_current_user
