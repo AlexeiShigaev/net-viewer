@@ -20,7 +20,7 @@ async function LogonButton() {
         else {
             window.location.replace("/web/client");
         }
-    } catch {
-        console.error("fetch crashes");
+    } catch (e) {
+        console.error("fetch crashes: " + e);
     }
 }

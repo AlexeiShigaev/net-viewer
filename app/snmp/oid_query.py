@@ -8,7 +8,7 @@ from app.snmp.models import QueryOID, ResultQueryOID
 snmp_engine = SnmpEngine()
 mibViewController = varbinds.AbstractVarBinds.getMibViewController(snmp_engine)
 
-# Нет доверия к этой конструкции, а если некий новоявленный прибор не даст свой вариант реализации?
+# Нет доверия к этой конструкции, а если некий новоявленный прибор даст свой вариант реализации?
 info_key = {
     "1": "ipAdEntAddr",
     "2": "ipAdEntIfIndex",
@@ -87,18 +87,16 @@ def extract_info_ip(data) -> ResultQueryOID:
     Струкрура OID-шек с инфо о наличии внутренних IP-addr такова:
     1.3.6.1.2.1.4.20.1.TYPE_INFO.IP.A.D.DR = INFO
 
-    На выходе словарь вида:
+    На выходе список словарей вида:
     {
         "results_list": [
             {
-                "10.0.0.1": {
-                    "ipAdEntAddr": "10.0.0.1",
-                    "ipAdEntIfIndex": "53",
-                    "ipAdEntNetMask": "255.255.252.0",
-                    "ipAdEntBcastAddr": "1",
-                    "ipAdEntReasmMaxSize": "65535"
-                }
-            }
+                "ipAdEntAddr": "10.0.0.1",
+                "ipAdEntIfIndex": "53",
+                "ipAdEntNetMask": "255.255.252.0",
+                "ipAdEntBcastAddr": "1",
+                "ipAdEntReasmMaxSize": "65535"
+            },
         ],
         "count": 1,
         "error": null
@@ -107,7 +105,7 @@ def extract_info_ip(data) -> ResultQueryOID:
 
     oid_root = str(data["oid_start"]) + '.'
     results = ResultQueryOID()
-    ip_addr_entry: dict = {}
+    ip_addr_entry = {}
     try:
         for elem in data["result_list"]:
             key, addr = str(elem[0]).split(oid_root)[1].split('.', maxsplit=1)
@@ -115,7 +113,7 @@ def extract_info_ip(data) -> ResultQueryOID:
             info_key.setdefault(key, "unknown")  # возможно это излишняя страховка
             ip_addr_entry[addr].update({info_key[key]: elem[1].prettyPrint()})
 
-        results.results_list = [{el: ip_addr_entry[el]} for el in ip_addr_entry]
+        results.results_list = [ip_addr_entry[el] for el in ip_addr_entry]
         results.count = len(results.results_list)
     except Exception as ex:
         results.error = "extract_info_ip: Error was occurred: {}".format(ex)
@@ -235,7 +233,7 @@ def extract_arp_table(data) -> ResultQueryOID:
     ],
     "count": 1,
     "error": null
-}
+    }
     """
     results = ResultQueryOID()
     oid_root_str = str(data["oid_start"]) + '.'
@@ -251,6 +249,28 @@ def extract_arp_table(data) -> ResultQueryOID:
                     "mac": ":".join(["{0:02x}".format(el) for el in mac.asNumbers()]),
                 }
             )
+        results.count = len(results.results_list)
+    except Exception as ex:
+        print("\nПри разборе элемента произошла ошибка\n{}".format(ex))
+        results.error = "extract_arp_table: Exception: {}".format(ex)
+
+    return results
+
+
+def extract_mac_addr(data) -> ResultQueryOID:
+    results = ResultQueryOID()
+    oid_root_str = str(data["oid_start"]) + '.'
+    try:
+        tmp_dict = {"ports": {}}
+        for elem in data["result_list"]:
+            mac: OctetString = elem[1]
+            tmp_dict["ports"].update(
+                {
+                    str(elem[0]).split(oid_root_str)[1]:
+                    ":".join(["{0:02x}".format(el) for el in mac.asNumbers()]),
+                }
+            )
+        results.results_list.append(tmp_dict)
         results.count = len(results.results_list)
     except Exception as ex:
         print("\nПри разборе элемента произошла ошибка\n{}".format(ex))

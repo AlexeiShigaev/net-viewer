@@ -12,8 +12,7 @@
                     <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown"
                        aria-expanded="false">Actions</a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#"
-                               data-bs-toggle="modal" data-bs-target="#changePassword">8888</a>
+                        <li><a class="dropdown-item" href="#">qqq</a>
                         </li>
                         <li>
                             <hr class="dropdown-divider">
@@ -29,24 +28,21 @@
                        aria-expanded="false">SNMP</a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="#"
-                               data-bs-toggle="modal" data-bs-target="#addSNMP">Add L2+ employ (SNMP)</a></li>
+                               data-bs-toggle="modal" data-bs-target="#addSNMP">Add L2+ device (SNMP)</a></li>
 
                     </ul>
                 </li>
-                <!--li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="#">Home</a>
-                </li>
+
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Settings222</a>
+                    <a class="nav-link active" href="#" id="menu_refresh">Refresh</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link disabled">Disabled</a>
-                </li -->
             </ul>
-            <form class="d-flex" role="search">
-                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-                <button class="btn btn-outline-success" type="submit">Search</button>
-            </form>
+            <div class="d-flex" role="search">
+                <input class="form-control me-2" type="search" placeholder="Search MAC or IP"
+                       aria-label="searchButton" id="searchInput" >
+                <button class="btn btn-outline-success" type="button" id="searchButton"
+                data-bs-toggle="offcanvas" data-bs-target="#canvas_info">Search</button>
+            </div>
         </div>
     </div>
 </nav>
@@ -395,7 +391,12 @@
                                 <label for="tab-arp-result1" class="form-label">
                                     сырые данные (здесь могут быть бинарные данные)</label>
                                 <textarea style="overflow-x: scroll" class="form-control" id="tab-arp-result1"
-                                          rows="3" wrap="off" readonly></textarea>
+                                          rows="3" wrap="off" readonly>
+Некоторые устройства не отдаю нужных данных.
+Либо поищите нужные OID-s инструментом
+SnmpWalk -csv -v:2c -c:public -r:host ...
+Или... нет у нас данных с этого устройства.`
+                                </textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="tab-arp-result2" class="form-label">вынимаем в таком виде</label>

@@ -1,6 +1,7 @@
 from typing import Optional
 
 import motor.motor_asyncio
+from pydantic import BaseModel
 
 
 class MongoMotorEngine:
@@ -23,6 +24,7 @@ class MongoMotorEngine:
     def is_connected(self, disconnect: bool = False) -> bool:
         if disconnect:
             if self._client is not None:
+                # TODO check flush
                 self._client.close()
             self._client, self._db = (None, None)
             return False
@@ -31,50 +33,33 @@ class MongoMotorEngine:
             self._db = self._client[self._db_name]
         return True
 
-    async def insert_one(self, collection, document):
-        try:
-            if not self.is_connected():
-                return None
-            result = await self._db[collection].insert_one(document)
-        except Exception as ex:
-            print("insert_one: exception {}".format(ex))
-            return None
-
-        return result
+    async def insert_one(self, collection: str, document: BaseModel):
+        if self.is_connected():
+            result = await self._db[collection].insert_one(document.model_dump())
+            return result
+        return None
 
     def find(self, collection, find_filter: dict):
-        try:
-            if not self.is_connected():
-                return None
+        if self.is_connected():
             return self._db[collection].find(filter=find_filter)
-        except Exception as ex:
-            print("find_one: exception: {}".format(ex))
         return None
 
     async def find_one(self, collection, find_filter: dict):
-        try:
-            if not self.is_connected():
-                return None
+        if self.is_connected():
             return await self._db[collection].find_one(filter=find_filter)
-        except Exception as ex:
-            print("find_one: exception: {}".format(ex))
         return None
 
     async def drop_collection(self, collection):
-        try:
-            if not self.is_connected():
-                return None
+        if self.is_connected():
             return await self._db.drop_collection(collection)
-        except Exception as ex:
-            print("drop_collection: {}".format(ex))
         return None
 
     async def update_one(self, collection, find_filter: dict, new_data: dict):
-        try:
-            if not self.is_connected():
-                return None
-            return await self._db[collection].update_one(filter=find_filter, update=new_data)
-        except Exception as ex:
-            print("update_one: exception: {}".format(ex))
+        if self.is_connected():
+            return await self._db[collection].update_one(filter=find_filter, update=new_data, upsert=True)
         return None
 
+    async def update_many(self, collection, find_filter: dict, new_data: dict):
+        if self.is_connected():
+            return await self._db[collection].update_many(filter=find_filter, update=new_data, upsert=True)
+        return None

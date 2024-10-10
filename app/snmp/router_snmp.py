@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends
 from pysnmp.proto.rfc1902 import TimeTicks
 
 from app.auth.auth import get_current_user
-from app.auth.schemas import UserData4Auth
+from app.auth.models import UserData4Auth
 from app.snmp.oid_query import (
     QueryOID, get_oid_from_to, extract_mac_vlan_port, ResultQueryOID,
-    extract_port_and_port_name, extract_info_ip, extract_arp_table
+    extract_port_and_port_name, extract_info_ip, extract_arp_table, extract_mac_addr
 )
 
 
@@ -155,7 +155,13 @@ async def query_mac_vlan_port(query: QueryOID, user: UserData4Auth = Depends(get
     Возвращает словарь вида
     ```
     {
-        "results_list": [{"mac": str, "vlan": str, "logical_interface_id": str},],
+        "results_list": [
+            {
+                "mac": str,
+                "vlan": str,
+                "logical_interface_id": str
+            }
+        ],
         "count": int,
         "error": str,
     }
@@ -233,3 +239,20 @@ async def query_arp_table(query: QueryOID, user: UserData4Auth = Depends(get_cur
         return ret_data
 
     return extract_arp_table(ret_data)
+
+
+@router.post("/query/info_mac", summary="Запрос MAC адреса устройства")
+async def query_info_mac(query: QueryOID, user: UserData4Auth = Depends(get_current_user)) -> ResultQueryOID:
+    """
+    Запрос MAC адреса устройства.
+
+    Аналог запросов:
+    * `SnmpWalk -csv -v:2c -c:public -r:host -os:1.0.8802.1.1.2.1.3.2 -op:1.0.8802.1.1.2.1.3.3`
+
+    """
+    ret_data = await get_oid_from_to(query)
+
+    if ret_data["error"] is not None:
+        return ret_data["error"]
+
+    return extract_mac_addr(ret_data)

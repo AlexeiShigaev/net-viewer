@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Response, Depends
 
 from app.auth.auth import get_password_hash, create_access_token, authenticate_user, get_current_user
-from app.auth.schemas import UserData4Auth
+from app.auth.models import UserData4Auth
 from app.database import motorchik
 
 router = APIRouter(prefix="/auth", tags=["Auth API"])
@@ -46,6 +46,7 @@ async def change_password(
 
 @router.post("/logon", summary="Точка входа")
 async def auth_user(response: Response, user_data: UserData4Auth):
+    print("post. logon")
     check = await authenticate_user(login=user_data.login, password=user_data.password)
     if check is None:
         raise HTTPException(

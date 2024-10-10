@@ -1,4 +1,6 @@
+////////////////////////////////////////////////////////////////////
 // разлогиниться по пункту логаут
+////////////////////////////////////////////////////////////////////
 document.getElementById('menu_logout').addEventListener('click', function () {
     fetch("/auth/logout")
         .then(response => {
@@ -149,8 +151,8 @@ async function runTest(tab) {
         }
 
     } catch (e) {
-        console.error("fetch crashes");
-        document.getElementById(tab + "-result2").value = "что-то пошло не так: response " + e;
+        console.error("fetch crashes: " + e);
+        document.getElementById(tab + "-result2").innerText = "что-то пошло не так: response " + e;
     }
 }
 
@@ -162,6 +164,7 @@ async function runTest(tab) {
 document.getElementById('addSNMP').addEventListener('shown.bs.tab', function (e) {
     if (e.target.toString().endsWith("tab-confirm")) {
         document.getElementById("addButton").setAttribute("disabled", '');
+        document.getElementById('isOK').checked = false
 
         let versionSNMP = 0;
         if (document.getElementById("tab-connect-version2").checked) versionSNMP = 1
@@ -189,7 +192,7 @@ document.getElementById('addSNMP').addEventListener('shown.bs.tab', function (e)
 // Прежде чем отправить данные о новом устройстве надо поставить галочку
 // для активации кнопки Добавить
 ////////////////////////////////////////////////////////////////////
-document.getElementById('isOK').addEventListener('click', function(){
+document.getElementById('isOK').addEventListener('click', function () {
     if (this.checked)
         document.getElementById("addButton").removeAttribute("disabled");
     else
@@ -200,9 +203,10 @@ document.getElementById('isOK').addEventListener('click', function(){
 ////////////////////////////////////////////////////////////////////
 // Обращение к /core/add_device для добавления устройства
 ////////////////////////////////////////////////////////////////////
-document.getElementById("addButton").addEventListener("click", sendNewDeviceDada)
-async function sendNewDeviceDada(){
-    try{
+document.getElementById("addButton").addEventListener("click", sendNewDeviceData)
+
+async function sendNewDeviceData() {
+    try {
         let fetchResponse = await fetch("/core/add_device", {
                 method: 'POST',
                 headers: {'Content-type': 'application/json',},
@@ -213,10 +217,79 @@ async function sendNewDeviceDada(){
             throw fetchResponse.status;
         else
             document.getElementById("new_device").value = "Устройство добавлено.";
-
     } catch (e) {
-        console.error("fetch crashes");
+        console.error("fetch crashes: " + e);
         document.getElementById("new_device").value = "что-то пошло не так: response " + e;
     }
+    document.getElementById("addButton").setAttribute("disabled", '');
+    document.getElementById('isOK').checked = false
 }
+
+
+////////////////////////////////////////////////////////////////////
+// Поисковая строка. Делаем запрос,выдаем результат.
+////////////////////////////////////////////////////////////////////
+document.getElementById("searchButton").addEventListener("click", sendSearch)
+
+async function sendSearch() {
+    let query_str = document.getElementById("searchInput").value
+    try {
+        let fetchResponse = await fetch("/core/search/",
+            {
+                method: 'POST',
+                headers: {'Content-type': 'application/json',},
+                body: JSON.stringify({"query": query_str})
+            }
+        );
+        document.getElementById("offcanvas_info_title").innerText = "Запрос: " + query_str
+        if (!fetchResponse.ok)
+            throw fetchResponse.status;
+        else {
+            let info = document.getElementById("offcanvas_info_body")
+            let info_json = await fetchResponse.json()
+
+            info.innerHTML = `
+                <ul class="list-group list-group-horizontal-xl">
+                    <li class="list-group-item w-50">ip-address</li>
+                    <li class="list-group-item w-50">mac-address</li>
+                </ul>
+            `
+            info.insertAdjacentHTML("beforeend",
+                `<ul class="list-group list-group-horizontal-xl">
+                    <li class="list-group-item w-50">` + Object.keys(info_json)[0] + `</li>
+                    <li class="list-group-item w-50">` + info_json[Object.keys(info_json)[0]].mac + `</li>
+                </ul>`
+            )
+
+            let devices = info_json[Object.keys(info_json)[0]].devices
+            info.insertAdjacentHTML("beforeend", `<h4 class="mt-4">Какие устройства его знают:</h4>`)
+
+            info.insertAdjacentHTML("beforeend", `
+                <ul class="list-group list-group-horizontal-xl">
+                    <li class="list-group-item w-25">Устройство</li>
+                    <li class="list-group-item w-50">имя порта</li>
+                    <li class="list-group-item w-25">кол-во маков на порту</li>
+                </ul>
+            `)
+            for (let dev in devices) {
+                info.insertAdjacentHTML("beforeend", `
+                    <ul class="list-group list-group-horizontal-xl">
+                        <li class="list-group-item w-25">` + dev + `</li>
+                        <li class="list-group-item w-50">` + devices[dev].port_name + `</li>
+                        <li class="list-group-item w-25">` + devices[dev].port_macs_counter + `</li>
+                    </ul>
+                `)
+            }
+        }
+    } catch (e) {
+        console.error("fetch crashes: " + e);
+        document.getElementById("place").innerText = "что-то пошло не так: response " + e;
+    }
+}
+
+document.getElementById("searchInput").addEventListener("keyup", ({key}) => {
+    if (key === "Enter") {
+        document.getElementById("searchButton").click()
+    }
+})
 
