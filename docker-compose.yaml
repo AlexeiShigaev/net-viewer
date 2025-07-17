@@ -33,16 +33,17 @@ services:
 # ********************************************************************
 # Приложение с fastapi внутри контейнера
 # ********************************************************************
-  app:
-    build:
-      context: ./
-      dockerfile: ./app/Dockerfile
-    ports:
-      - "8008:8008"
-    depends_on:
-      - mongo
-    volumes:
-      - ./app:/mac-finder/app
-      - ./static:/mac-finder/static
-    command: uvicorn app.__main__:app_loader --host=0.0.0.0 --port 8008 --reload
+#  app:
+#    build:
+#      context: ./
+#      dockerfile: ./app/Dockerfile
+#    ports:
+#      - "8008:8008"
+#    depends_on:
+#      - mongo
+#    volumes:
+#      - ./app:/mac-finder/app
+#      - ./static:/mac-finder/static
+#      - ./README.md:/mac-finder/README.md
+#    command: uvicorn app.__main__:app_loader --host=0.0.0.0 --port 8008 --reload
 

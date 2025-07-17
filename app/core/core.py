@@ -199,8 +199,12 @@ class CoreManager:
 
         # вынимаю из коллекции все устройства, по очереди опрашиваю, формирую список устройств и коллекцию маков
         cursor = motorchik.find("devices", None)
+        devices = await cursor.to_list(length=None)
+        if not len(devices):
+            print("!!! Empty devices list. Please, configure devices.")
+            return
 
-        for device in await cursor.to_list(length=None):
+        for device in devices:
             tasks.append(
                 loop.create_task(
                     cls.update_device_info(NewDevice(**device))
